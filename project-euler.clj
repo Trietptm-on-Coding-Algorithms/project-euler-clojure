@@ -63,6 +63,11 @@
                              (bit-shift-right (+ current lower) 1))
             :else current))))
 
+(defn digits
+  "Find the digits of n"
+  [n]
+  (map #(Character/digit % 36) (seq (str n))))
+
 (defn problem-27
   "Product of the coefficients, a and b, in (+ (* n n) (* a n) b),
   where (and (< (abs a) 1000) (< (abs b) 1000)) that produces the
@@ -169,3 +174,34 @@
                                       :when (and (= c2 (* c c))
                                                  (<= p 1000))]
                                   p)))))))
+
+(defn problem-33
+  " The fraction 49/98 is a curious fraction, as an inexperienced
+  mathematician in attempting to simplify it may incorrectly
+  believe that 49/98 = 4/8, which is correct, is obtained by
+  cancelling the 9s.
+
+  We shall consider fractions like, 30/50 = 3/5, to be trivial
+  examples.
+
+  There are exactly four non-trivial examples of this type of
+  fraction, less than one in value, and containing two digits in
+  the numerator and denominator.
+
+  If the product of these four fractions is given in its lowest
+  common terms, find the value of the denominator."
+  []
+  (letfn [(curious-fraction [numer denom]
+            (let [[n1 n2] (vec (digits numer))
+                  [d1 d2] (vec (digits denom))
+                  fraction (/ numer denom)]
+              (or (and (= n1 d1) (not (= d2 0)) (= (/ n2 d2) fraction))
+                  (and (= n1 d2) (= (/ n2 d1) fraction))
+                  (and (= n2 d1) (not (= d2 0)) (= (/ n1 d2) fraction))
+                  (and (not (= n2 0)) (= n2 d2) (= (/ n1 d1) fraction)))))]
+    (denominator
+      (apply * (map #(/ (% 0) (% 1))
+                    (filter #(apply curious-fraction %)
+                            (for [numer (range 11 100)
+                                  denom (range (inc numer) 100)]
+                              [numer denom])))))))
