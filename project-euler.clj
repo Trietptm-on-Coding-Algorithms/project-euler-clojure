@@ -200,8 +200,7 @@
                   (and (= n2 d1) (not (= d2 0)) (= (/ n1 d2) fraction))
                   (and (not (= n2 0)) (= n2 d2) (= (/ n1 d1) fraction)))))]
     (denominator
-      (apply * (map #(/ (% 0) (% 1))
-                    (filter #(apply curious-fraction %)
-                            (for [numer (range 11 100)
-                                  denom (range (inc numer) 100)]
-                              [numer denom])))))))
+      (apply * (for [numer (range 11 100)
+                     denom (range (inc numer) 100)
+                     :when (curious-fraction numer denom)]
+                 (/ numer denom))))))
