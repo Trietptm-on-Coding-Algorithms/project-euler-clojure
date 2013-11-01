@@ -75,6 +75,12 @@
   [coll]
   (reduce #(+ (* %1 10) %2) 0 coll))
 
+(defn C
+  "nCr"
+  [n r]
+  (/ (apply *' (range (inc' r) (inc' n)))
+     (apply *' (range 2 (inc' (- n r))))))
+
 (defn problem-27
   "Product of the coefficients, a and b, in (+ (* n n) (* a n) b),
   where (and (< (abs a) 1000) (< (abs b) 1000)) that produces the
@@ -240,3 +246,14 @@
                     :let [n (digits->number p)]
                     :when (prime? n)]
                 n)))
+
+(defn problem-53
+  "How many, not necessarily distinct, values of nCr, for
+  (<= 1 n 100), are greater than one-million?"
+  []
+  (count (for [n (range 1 101)
+               r (range 0 (inc n))
+               :let [c (C n r)]
+               :when (> c 1000000)
+               ]
+           c)))
