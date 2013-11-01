@@ -1,6 +1,7 @@
-(require '[clojure.java.io :as io]
-         '[clojure.string :as str]
-         '[clojure.math.combinatorics :as comb])
+(ns project-euler.core
+  (:require [clojure.java.io :as io]
+            [clojure.string :as str]
+            [clojure.math.combinatorics :as comb]))
 
 (defn divisors
   "Find all divisors of n"
@@ -73,19 +74,6 @@
   "Convert a seq of digits to number"
   [coll]
   (reduce #(+ (* %1 10) %2) 0 coll))
-
-(defn next-permutation
-  "Find the next permutation of coll. coll must contain only
-  distinct numbers."
-  [coll]
-  (let [rcoll (reverse coll)]
-    (when-let [d (second
-                   (first (filter #(apply > %)
-                                  (partition 2 1 rcoll))))]
-      (let [[before [_ & after]] (split-with #(not (= d %)) rcoll)
-            [less [s & greater]] (split-with #(< % d) before)
-            new-before (reverse (concat less (cons d greater)))]
-        (reverse (concat new-before (cons s after)))))))
 
 (defn problem-27
   "Product of the coefficients, a and b, in (+ (* n n) (* a n) b),
@@ -239,8 +227,7 @@
     (apply +
       (distinct
         (mapcat pandigital-products
-                (take-while identity (iterate next-permutation
-                                              (range 1 10))))))))
+                (comb/permutations (range 1 10)))))))
 
 (defn problem-41
   "Largest pandigital prime
@@ -249,8 +236,8 @@
   which is divisible by 3. Similarly, p cannot contain 8, either."
   []
   (reduce max
-          (for [permutation (iterate next-permutation (range 1 8))
-                :while permutation
-                :let [n (digits->number permutation)]
+          (for [p (comb/permutations (range 1 8))
+                :while p
+                :let [n (digits->number p)]
                 :when (prime? n)]
             n)))
