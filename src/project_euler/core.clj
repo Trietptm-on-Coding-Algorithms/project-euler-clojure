@@ -235,9 +235,8 @@
   This prime p cannot contain 9, as (= 45 (apply + (range 1 10)))
   which is divisible by 3. Similarly, p cannot contain 8, either."
   []
-  (reduce max
-          (for [p (comb/permutations (range 1 8))
-                :while p
-                :let [n (digits->number p)]
-                :when (prime? n)]
-            n)))
+  (reduce max (for [p (comb/permutations (range 1 8))
+                    :while p
+                    :let [n (digits->number p)]
+                    :when (prime? n)]
+                n)))
