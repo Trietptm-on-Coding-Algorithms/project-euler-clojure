@@ -1,8 +1,13 @@
-*.swp
 pom.xml
 *jar
 /lib/
 /classes/
 /targets/
-.lein-deps-sum
+/target
+/checkouts
+pom.xml.asc
+*.class
+/.lein-*
+/.nrepl-port
+*.swp
 words.txt
