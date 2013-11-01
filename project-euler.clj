@@ -1,5 +1,6 @@
 (require '[clojure.java.io :as io]
-         '[clojure.string :as str])
+         '[clojure.string :as str]
+         '[clojure.math.combinatorics :as comb])
 
 (defn divisors
   "Find all divisors of n"
@@ -19,7 +20,7 @@
 (defn proper-divisors
   "Find the proper divisors of n"
   [n]
-  (butlast (divisors n)))
+  (drop-last (divisors n)))
 
 (defn abundant-number?
   "Check if n is abundant"
@@ -67,6 +68,24 @@
   "Find the digits of n"
   [n]
   (map #(Character/digit % 36) (seq (str n))))
+
+(defn digits->number
+  "Convert a seq of digits to number"
+  [coll]
+  (reduce #(+ (* %1 10) %2) 0 coll))
+
+(defn next-permutation
+  "Find the next permutation of coll. coll must contain only
+  distinct numbers."
+  [coll]
+  (let [rcoll (reverse coll)]
+    (when-let [d (second
+                   (first (filter #(apply > %)
+                                  (partition 2 1 rcoll))))]
+      (let [[before [_ & after]] (split-with #(not (= d %)) rcoll)
+            [less [s & greater]] (split-with #(< % d) before)
+            new-before (reverse (concat less (cons d greater)))]
+        (reverse (concat new-before (cons s after)))))))
 
 (defn problem-27
   "Product of the coefficients, a and b, in (+ (* n n) (* a n) b),
@@ -158,8 +177,7 @@
   "If p is the perimeter of a right angle triangle with integral length sides,
   {a,b,c} there are exactly three solutions for p = 120.
   {20,48,52}, {24,45,51}, {30,40,50}
-  For which value of p ≤ 1000, is the number of solutions maximised?
-  "
+  For which value of p ≤ 1000, is the number of solutions maximised?"
   []
   (letfn [(compare-pairs [[_ c1 :as p1] [_ c2 :as p2]]
             (if (> c1 c2) p1 p2))]
@@ -176,7 +194,7 @@
                                   p)))))))
 
 (defn problem-33
-  " The fraction 49/98 is a curious fraction, as an inexperienced
+  "The fraction 49/98 is a curious fraction, as an inexperienced
   mathematician in attempting to simplify it may incorrectly
   believe that 49/98 = 4/8, which is correct, is obtained by
   cancelling the 9s.
@@ -204,3 +222,35 @@
                      denom (range (inc numer) 100)
                      :when (curious-fraction numer denom)]
                  (/ numer denom))))))
+
+(defn problem-32
+  "Pandigital products"
+  []
+  (letfn [(pandigital-products [coll]
+            (for [a (range 1 9)
+                  b (range a 9)
+                  :let [[m1-digits m2-p] (split-at a coll)
+                        [m2-digits product-digits] (split-at (- b a) m2-p)
+                        m1 (digits->number m1-digits)
+                        m2 (digits->number m2-digits)
+                        p (digits->number product-digits)]
+                  :when (= p (* m1 m2))]
+              p))]
+    (apply +
+      (distinct
+        (mapcat pandigital-products
+                (take-while identity (iterate next-permutation
+                                              (range 1 10))))))))
+
+(defn problem-41
+  "Largest pandigital prime
+
+  This prime p cannot contain 9, as (= 45 (apply + (range 1 10)))
+  which is divisible by 3. Similarly, p cannot contain 8, either."
+  []
+  (reduce max
+          (for [permutation (iterate next-permutation (range 1 8))
+                :while permutation
+                :let [n (digits->number permutation)]
+                :when (prime? n)]
+            n)))
