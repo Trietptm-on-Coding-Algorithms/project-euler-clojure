@@ -102,6 +102,15 @@
   [coll]
   (map #(vector (first %) (count %)) (partition-by identity (sort coll))))
 
+(def pentagonal-numbers
+  "A lazy seq of all pentagonal-numbers"
+  (map #(/ (* % (- (* 3 %) 1)) 2) (iterate inc 1)))
+
+(defn pentagonal-number?
+  "Check if n is a pentagonal number"
+  [n]
+  (= n (first (drop-while #(< % n) pentagonal-numbers))))
+
 (defn problem-27
   "Product of the coefficients, a and b, in (+ (* n n) (* a n) b),
   where (and (< (abs a) 1000) (< (abs b) 1000)) that produces the
@@ -403,3 +412,19 @@
                          [p b c])]
                :when (seq r)]
            r)))
+
+(defn problem-44
+  "Find the pair of pentagonal numbers, Pj and Pk, for which
+  their sum and difference are pentagonal and D = |Pk − Pj| is
+  minimised; what is the value of D?"
+  []
+  (first
+    (apply concat
+           (for [n1 pentagonal-numbers
+                 :let [ans (for [d (take-while #(< % n1) pentagonal-numbers)
+                                 :let [n2 (- n1 d)]
+                                 :when (and (pentagonal-number? n2)
+                                            (pentagonal-number? (+ n1 n2)))]
+                             [n1 n2])]
+                 :when ans]
+             ans))))
