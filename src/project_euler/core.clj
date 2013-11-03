@@ -1,7 +1,9 @@
 (ns project-euler.core
   (:require [clojure.java.io :as io]
-            [clojure.string :as str]
-            [clojure.math.combinatorics :as comb]))
+            [clojure.math [combinatorics :as comb]
+                          [numeric-tower :as math]]
+            [clojure.set :as set]
+            [clojure.string :as str]))
 
 (defn divisors
   "Find all divisors of n"
@@ -49,6 +51,20 @@
   "Lazy seq of all primes"
   (filter #(prime? %) (iterate inc 0)))
 
+(defn prime-factors
+  "Find the prime factors of n"
+  [n]
+  (loop [d n
+         f {}
+         p (first primes)
+         ps (rest primes)]
+    (cond (or (= d 0) (= d 1)) f
+          (zero? (rem d p)) (recur (quot d p)
+                                   (assoc f p (inc (get f p 0)))
+                                   p
+                                   ps)
+          :else (recur d f (first ps) (rest ps)))))
+
 (def triangle-numbers
   "Lazy seq of all triangle numbers"
   (map #(bit-shift-right (* (inc %) %) 1) (iterate inc 1)))
@@ -73,13 +89,18 @@
 (defn digits->number
   "Convert a seq of digits to number"
   [coll]
-  (reduce #(+ (* %1 10) %2) 0 coll))
+  (reduce #(+' (*' %1 10) %2) 0 coll))
 
 (defn C
   "nCr"
   [n r]
   (/ (apply *' (range (inc' r) (inc' n)))
      (apply *' (range 2 (inc' (- n r))))))
+
+(defn counts
+  "Return a seq of pairs of unique elements in coll and their count"
+  [coll]
+  (map #(vector (first %) (count %)) (partition-by identity (sort coll))))
 
 (defn problem-27
   "Product of the coefficients, a and b, in (+ (* n n) (* a n) b),
@@ -95,7 +116,7 @@
                        1)))
           (compare-triplets [[_ _ n1 :as t1] [_ _ n2 :as t2]]
             (if (> n1 n2) t1 t2))]
-    (apply compare-triplets
+    (reduce compare-triplets
       [0 0 0]
       (for [a (range -999 1000)
             b (range -999 1000)]
@@ -117,7 +138,7 @@
                                    (assoc rem-seen new-frac new-pos))))))
           (compare-pairs [[_ r1 :as p1] [_ r2 :as p2]]
             (if (> r1 r2) p1 p2))]
-    (apply compare-pairs [0 0] (map #(vector % (recurring-cycle-length %))
+    (reduce compare-pairs [0 0] (map #(vector % (recurring-cycle-length %))
                                     (range 3 1000)))))
 
 (defn problem-23
@@ -175,17 +196,15 @@
   []
   (letfn [(compare-pairs [[_ c1 :as p1] [_ c2 :as p2]]
             (if (> c1 c2) p1 p2))]
-    (apply compare-pairs
-      (map #(vector (first %) (count %))
-           (partition-by identity
-                         (sort  (for [a (range 1 1000)
-                                      b (range a 1000)
-                                      :let [c2 (+ (* a a) (* b b))
-                                            c (integer-sqrt c2)
-                                            p (+ a b c)]
-                                      :when (and (= c2 (* c c))
-                                                 (<= p 1000))]
-                                  p)))))))
+    (reduce compare-pairs
+      (counts (for [a (range 1 1000)
+                    b (range a 1000)
+                    :let [c2 (+ (* a a) (* b b))
+                          c (integer-sqrt c2)
+                          p (+ a b c)]
+                    :when (and (= c2 (* c c))
+                               (<= p 1000))]
+                p)))))
 
 (defn problem-33
   "The fraction 49/98 is a curious fraction, as an inexperienced
@@ -241,11 +260,11 @@
   This prime p cannot contain 9, as (= 45 (apply + (range 1 10)))
   which is divisible by 3. Similarly, p cannot contain 8, either."
   []
-  (reduce max (for [p (comb/permutations (range 1 8))
-                    :while p
-                    :let [n (digits->number p)]
-                    :when (prime? n)]
-                n)))
+  (apply max (for [p (comb/permutations (range 1 8))
+                   :while p
+                   :let [n (digits->number p)]
+                   :when (prime? n)]
+               n)))
 
 (defn problem-53
   "How many, not necessarily distinct, values of nCr, for
@@ -257,3 +276,130 @@
                :when (> c 1000000)
                ]
            c)))
+
+(defn problem-56
+  "Considering natural numbers of the form, a^b, where a, b < 100,
+  what is the maximum digital sum?"
+  []
+  (apply max (for [a (range 2 100)
+                   b (range 2 100)
+                   :let [s (apply + (digits (math/expt a b)))]]
+               s)))
+
+(defn problem-46
+  "What is the smallest odd composite that cannot be written as
+  the sum of a prime and twice a square? "
+  []
+  (letfn [(breakable? [n]
+            (first (for [p (take-while #(< % n) primes)
+                         :let [r (- n p)
+                               s (/ r 2)
+                               rt (integer-sqrt s)]
+                         :when (and (= r (* 2 s))
+                                    (= s (* rt rt)))]
+                     [p rt])))]
+    (first (for [n (iterate #(+ 2 %) 3)
+                 :when (and (not (prime? n))
+                            (not (breakable? n)))]
+             n))))
+
+(defn problem-55
+  "How many Lychrel numbers are there below ten-thousand?"
+  []
+  (letfn [(palindrome-number? [n]
+            (let [ds (digits n)]
+              (= ds (reverse ds))))
+          (producing-palindrome-number? [number]
+            (loop [i 1
+                   n number]
+              (if (> i 50)
+                false
+                (let [n' (+' n (digits->number (reverse (digits n))))]
+                  (if (palindrome-number? n')
+                    true
+                    (recur (inc i) n'))))))]
+    (count (filter #(not (producing-palindrome-number? %)) (range 1 10000)))))
+
+(defn problem-43
+  "Sub-string divisibility"
+  []
+  (let [ps (take 7 primes)]
+    (apply +' (for [p (drop 362880 (comb/permutations (range 10)))
+                    :let [sub (map digits->number (partition 3 1 (rest p)))]
+                    :when (every? identity (map #(= (rem %1 %2) 0) sub ps))]
+                (digits->number p)))))
+
+(defn problem-38
+  "Pandigital multiples"
+  []
+  (letfn [(concatenated-multiples [n]
+            (loop [i 0
+                   ds #{}
+                   m []]
+              (if (or (= (count ds) 9) (> i 9))
+                (digits->number (mapcat digits m))
+                (let [new-i (inc i)
+                      mult (* new-i n)
+                      d (digits mult)
+                      dst (set d)]
+                  (if (or (dst 0)
+                          (not (= (count dst) (count d)))
+                          (some ds d))
+                    nil
+                    (recur new-i (set/union ds dst) (conj m mult)))))))]
+    (apply max (for [n (range 2 10000)
+                     :let [m (concatenated-multiples n)]
+                     :when m]
+                 m))))
+
+(defn problem-50
+  "Which prime, below one-million, can be written as the sum of
+  the most consecutive primes?"
+  []
+  (let [ps (take 550 primes)]
+    (first (for [l (range (count ps) 20 -1)
+                 p-list (partition l 1 ps)
+                 :let [s (apply + p-list)]
+                 :when (and (< s 1000000)
+                            (prime? s))]
+             s))))
+
+(defn problem-47
+  "Find the first four consecutive integers to have four distinct
+  prime factors. What is the first of these numbers?
+
+  That number must be at least equal to (* 2 3 5 7), which is 210."
+  []
+  (first (for [q (partition 4 1 (iterate inc 210))
+               :when (every? #(= 4 (count (prime-factors %))) q)
+               ]
+           q)))
+
+(defn problem-49
+  "The arithmetic sequence, 1487, 4817, 8147, in which each of
+  the terms increases by 3330, is unusual in two ways: (i) each
+  of the three terms are prime, and, (ii) each of the 4-digit
+  numbers are permutations of one another.
+
+  There are no arithmetic sequences made up of three 1-, 2-, or
+  3-digit primes, exhibiting this property, but there is one
+  other 4-digit increasing sequence.
+
+  What 12-digit number do you form by concatenating the three
+  terms in this sequence?"
+  []
+  (apply concat
+         (for [p (take-while #(< % 10000) (drop-while #(< % 1000) primes))
+               :let [pd (sort (digits p))
+                     r (for [d (range 1 5000)
+                             :let [b (+ p d)
+                                   c (+ b d)
+                                   bd (sort (digits b))
+                                   cd (sort (digits c))]
+                             :while (< c 10000)
+                             :when (and (prime? b)
+                                        (prime? c)
+                                        (= pd bd cd))]
+                         [p b c])]
+               :when (seq r)]
+           r)))
