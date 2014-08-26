@@ -428,3 +428,37 @@
                              [n1 n2])]
                  :when ans]
              ans))))
+
+(defn problem-92
+  "A number chain is created by continuously adding the square
+  of the digits in a number to form a new number until it has
+  been seen before. How many starting numbers below ten million
+  will arrive at 89?"
+  []
+  (loop [ends-in-89 #{89}
+         result-count 0
+         n 2
+         current n
+         to-add-to-cache [2]]
+    (cond
+      (>= n 10000000) result-count
+      (= 1 current) (let [incremented (inc n)]
+                      (recur ends-in-89
+                             result-count
+                             incremented
+                             incremented
+                             [incremented]))
+      (ends-in-89 current) (let [incremented (inc n)]
+                             (recur (into ends-in-89 to-add-to-cache)
+                                    (inc result-count)
+                                    incremented
+                                    incremented
+                                    [incremented]))
+      :else (let [next-num (apply + (map #(* %1 %1) (digits current)))]
+              (recur ends-in-89
+                     result-count
+                     n
+                     next-num
+                     (if (< next-num 1000)
+                       (conj to-add-to-cache next-num)
+                       to-add-to-cache))))))
